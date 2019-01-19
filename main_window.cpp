@@ -34,7 +34,7 @@ main_window::main_window(QWidget *parent)
     connect(ui->removeDirectoryButton, SIGNAL(clicked(bool)), this, SLOT(remove_directory_from_tracking()));
     connect(ui->stopIndexingButton, SIGNAL(clicked(bool)), this, SLOT(stop_indexing()));
     connect(ui->continueIndexingButton, SIGNAL(clicked(bool)), this, SLOT(continue_indexing()));
-    connect(&systemWatcher, &QFileSystemWatcher::fileChanged, this, &main_window::update_file);
+    connect(&systemWatcher, &QFileSystemWatcher::fileChanged, this, &main_window::update_directory);
 
 }
 
@@ -163,6 +163,7 @@ void main_window::reload_directory_scanner() {
     if (!stopped) {
         set_status(current_scanner_directory, TrackStatus::SCANNED);
         directory_scanner_thread = nullptr;
+        current_scanner_directory = "";
         try_to_launch_directory_scanner();
     }
 }
@@ -249,7 +250,6 @@ void main_window::remove_directory_from_tracking() {
 void main_window::remove_directory_trigrams(QString const &path) {
     foreach (QString const &file_path, directories_data[path]) {
         files_data.remove(file_path);
-        systemWatcher.removePath(file_path);
     }
     directories_data.remove(path);
 }
@@ -297,26 +297,25 @@ void main_window::continue_indexing() {
     }
 }
 
-void main_window::update_file(QString const &path) {
-    files_data.remove(path);
-
-    (std::cout << path.toStdString() + '\n').flush();
-    running_updaters++;
-
-    QThread* thread = new QThread;
-    file_scanner* scanner = new file_scanner(0);
-    scanner->moveToThread(thread);
-
-    connect(this, &main_window::update_file_signal, scanner, &file_scanner::start_scanning);
-    connect(scanner, &file_scanner::finished_scanning, this, &main_window::decrease_running_updaters);
-    connect(scanner, &file_scanner::found_trigrams, this, &main_window::add_trigram_data);
-    connect(scanner, &file_scanner::finished_scanning, scanner, &file_scanner::deleteLater);
-    connect(thread, &QThread::finished, thread, &QThread::deleteLater);
-
-    thread->start();
-    emit update_file_signal({{path}});
+void main_window::update_directory(QString const &path) {
+    QString parent_path = find_parent_directory(path);
+    if (parent_path == current_scanner_directory) {
+        return;
+    }
+    remove_directory_trigrams(parent_path);
+    set_status(parent_path, TrackStatus::IN_QUEUE);
+    add_to_queue(parent_path);
 }
 
 void main_window::decrease_running_updaters() {
     running_updaters--;
+}
+
+QString main_window::find_parent_directory(QString const &path) {
+    for (size_t i = 0; i < ui->selectedDirectoriesView->rowCount(); i++) {
+        if (path.indexOf(ui->selectedDirectoriesView->item(i, 0)->text()) == 0) {
+            return ui->selectedDirectoriesView->item(i, 0)->text();
+        }
+    }
+    return "";
 }

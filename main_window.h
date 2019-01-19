@@ -58,7 +58,7 @@ public slots:
     void add_found_path(size_t id, QString const &path);
     void decrement_search_counter();
 
-    void update_file(QString const &path);
+    void update_directory(QString const &path);
     void decrease_running_updaters();
 private:
 
@@ -75,6 +75,8 @@ private:
     void interrupt_search();
 
     void remove_directory_trigrams(QString const &path);
+
+    QString find_parent_directory(QString const &path);
 
     QHash<QString, QSet<QString>> directories_data;
     QHash<QString, QSet<uint64_t>> files_data;
