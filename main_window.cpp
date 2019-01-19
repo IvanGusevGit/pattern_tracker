@@ -50,6 +50,9 @@ void main_window::select_directory() {
 
 void main_window::add_to_tracking() {
     QString directoryPath = ui->pathArea->text();
+    if (directoryPath.isEmpty()) {
+        return;
+    }
     ui->pathArea->clear();
     if (!QDir(directoryPath).exists()) {
         ui->notification->setText("Directory does not exist");
