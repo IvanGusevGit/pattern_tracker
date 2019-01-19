@@ -59,7 +59,7 @@ public slots:
     void decrement_search_counter();
 
     void update_directory(QString const &path);
-    void decrease_running_updaters();
+
 private:
 
     void init_ui_components();

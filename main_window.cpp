@@ -299,16 +299,12 @@ void main_window::continue_indexing() {
 
 void main_window::update_directory(QString const &path) {
     QString parent_path = find_parent_directory(path);
-    if (parent_path == current_scanner_directory) {
+    if (parent_path == current_scanner_directory || queue.contains(parent_path)) {
         return;
     }
     remove_directory_trigrams(parent_path);
     set_status(parent_path, TrackStatus::IN_QUEUE);
     add_to_queue(parent_path);
-}
-
-void main_window::decrease_running_updaters() {
-    running_updaters--;
 }
 
 QString main_window::find_parent_directory(QString const &path) {
