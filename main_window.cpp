@@ -34,7 +34,7 @@ main_window::main_window(QWidget *parent)
     connect(ui->removeDirectoryButton, SIGNAL(clicked(bool)), this, SLOT(remove_directory_from_tracking()));
     connect(ui->stopIndexingButton, SIGNAL(clicked(bool)), this, SLOT(stop_indexing()));
     connect(ui->continueIndexingButton, SIGNAL(clicked(bool)), this, SLOT(continue_indexing()));
-    connect(&systemWatcher, &QFileSystemWatcher::directoryChanged, this, &main_window::update_file);
+    connect(&systemWatcher, &QFileSystemWatcher::fileChanged, this, &main_window::update_file);
 
 }
 
@@ -80,7 +80,6 @@ void main_window::add_to_tracking() {
 
     ui->selectedDirectoriesView->item(newItemIndex, 2)->setFlags(ui->selectedDirectoriesView->item(newItemIndex, 2)->flags() ^ Qt::ItemIsSelectable ^ Qt::ItemIsEditable);
 
-    systemWatcher.addPath(directoryPath);
     add_to_queue(directoryPath);
 }
 
@@ -123,7 +122,8 @@ void main_window::add_trigram_data(QString const &path, QSet<uint64_t> const &tr
         directories_data[current_scanner_directory] = QSet<QString>();
     }
     directories_data[current_scanner_directory].insert(path);
-    //systemWatcher.addPath(path);
+    systemWatcher.addPath(path);
+
 }
 
 void main_window::add_to_queue(QString const &path) {
@@ -249,8 +249,8 @@ void main_window::remove_directory_from_tracking() {
 void main_window::remove_directory_trigrams(QString const &path) {
     foreach (QString const &file_path, directories_data[path]) {
         files_data.remove(file_path);
+        systemWatcher.removePath(file_path);
     }
-    systemWatcher.removePath(path);
     directories_data.remove(path);
 }
 
@@ -300,6 +300,7 @@ void main_window::continue_indexing() {
 void main_window::update_file(QString const &path) {
     files_data.remove(path);
 
+    (std::cout << path.toStdString() + '\n').flush();
     running_updaters++;
 
     QThread* thread = new QThread;
