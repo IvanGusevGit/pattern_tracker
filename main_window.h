@@ -34,8 +34,6 @@ signals:
 
     void stop_search_pattern_signal();
 
-    void update_file_signal(std::vector<std::vector<QString>>);
-
 public slots:
 
     void select_directory();
