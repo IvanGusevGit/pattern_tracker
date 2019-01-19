@@ -247,6 +247,7 @@ void main_window::remove_directory_trigrams(QString const &path) {
         files_data.remove(file_path);
         systemWatcher.removePath(file_path);
     }
+    directories_data.remove(path);
 }
 
 void main_window::stop_indexing() {
