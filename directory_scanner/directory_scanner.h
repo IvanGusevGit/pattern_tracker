@@ -49,7 +49,7 @@ public slots:
 private:
 
 
-    std::pair<size_t, std::vector<QString>> find_files();
+    std::pair<uint64_t , std::vector<QString>> find_files();
 
 
     static size_t const SCANNERS_NUMBER = 3;

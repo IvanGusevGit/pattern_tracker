@@ -54,6 +54,8 @@ void file_scanner::get_file_trigrams(QString const &path) {
             buffer = buffer.mid(buffer.size() - 2, 2);
         }
         file.close();
+    } else {
+        (std::cout << "Unable to open file " + path.toStdString() + '\n').flush();
     }
 
     if (!result.isEmpty()) {

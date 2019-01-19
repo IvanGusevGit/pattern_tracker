@@ -30,7 +30,7 @@ main_window::main_window(QWidget *parent)
 
     connect(ui->selectDirectoryButton, SIGNAL(clicked(bool)), this, SLOT(select_directory()));
     connect(ui->addToTrackingButton, SIGNAL(clicked(bool)), this, SLOT(add_to_tracking()));
-    connect(ui->requestArea, SIGNAL(textChanged(const QString &)), this, SLOT(check_request_area()));
+    connect(ui->requestArea, SIGNAL(textEdited(const QString &)), this, SLOT(check_request_area()));
     connect(ui->removeDirectoryButton, SIGNAL(clicked(bool)), this, SLOT(remove_directory_from_tracking()));
     connect(ui->stopIndexingButton, SIGNAL(clicked(bool)), this, SLOT(stop_indexing()));
     connect(ui->continueIndexingButton, SIGNAL(clicked(bool)), this, SLOT(continue_indexing()));
@@ -154,16 +154,9 @@ void main_window::try_to_launch_directory_scanner() {
 void main_window::reload_directory_scanner() {
     int32_t row = find_row(current_scanner_directory);
     bool stopped;
-    if (row == -1) {
-        stopped = true;
-    }else {
-        stopped = ((QProgressBar*)ui->selectedDirectoriesView->cellWidget(row, 1))->text() != "100%";
-    }
-    if (stopped) {
-        if (row != -1) {
-            set_status(current_scanner_directory, TrackStatus::STOPPED);
-        }
-    } else {
+    stopped = (row == -1) || ((QProgressBar*)ui->selectedDirectoriesView->cellWidget(row, 1))->text() != "100%";
+
+    if (!stopped) {
         set_status(current_scanner_directory, TrackStatus::SCANNED);
         directory_scanner_thread = nullptr;
         try_to_launch_directory_scanner();
@@ -261,6 +254,10 @@ void main_window::stop_indexing() {
     bool scanner_stop = false;
     for (size_t i = 0; i < cells.size(); i++) {
         QString path_to_remove = cells.at(i)->text();
+        QString status = (ui->selectedDirectoriesView->item(cells.at(i)->row(), 2))->text();
+        if (status == TrackStatus::SCANNED) {
+            continue;
+        }
         if (path_to_remove == current_scanner_directory) {
             emit stop_directory_scanning(path_to_remove);
             set_status(path_to_remove, TrackStatus::STOPPED);
@@ -289,7 +286,7 @@ void main_window::continue_indexing() {
         QString path = cells.at(i)->text();
         int32_t row = cells.at(i)->row();
         if (ui->selectedDirectoriesView->item(row, 2)->text() == TrackStatus::STOPPED) {
-            set_status(path, TrackStatus::INDEXING);
+            set_status(path, TrackStatus::IN_QUEUE);
             add_to_queue(path);
         }
     }

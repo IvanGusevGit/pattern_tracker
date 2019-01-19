@@ -30,7 +30,7 @@ directory_scanner::directory_scanner(QHash<QString, QSet<uint64_t >>* storage) :
 
 void directory_scanner::start_scanning() {
     finished_treads_counter = 0;
-    std::pair<size_t, std::vector<QString>> files_data = find_files();
+    std::pair<uint64_t , std::vector<QString>> files_data = find_files();
     emit range_signal(files_data.first);
     emit_scanned_signal(files_data.first - files_data.second.size());
     std::vector<std::vector<QString>> groups(SCANNERS_NUMBER);
@@ -40,8 +40,8 @@ void directory_scanner::start_scanning() {
     emit file_groups_signal(groups);
 }
 
-std::pair<size_t, std::vector<QString>> directory_scanner::find_files() {
-    size_t total = 0;
+std::pair<uint64_t , std::vector<QString>> directory_scanner::find_files() {
+    uint64_t total = 0;
     std::vector<QString> files;
     QDirIterator it(directory_path, QDir::Hidden | QDir::Files | QDir::NoDotAndDotDot, QDirIterator::Subdirectories);
     while (it.hasNext()) {
