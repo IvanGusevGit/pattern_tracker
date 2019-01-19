@@ -15,7 +15,6 @@
 file_scanner::file_scanner(size_t id) : id(id) {}
 
 void file_scanner::start_scanning(std::vector<std::vector<QString>> const &roots) {
-    (std::cout << "FILE SCANNER STARTED " + std::to_string(id) +"\n").flush();
     try {
         for (QString const &file_path : roots[id]) {
             checkInterruption();
@@ -23,16 +22,13 @@ void file_scanner::start_scanning(std::vector<std::vector<QString>> const &roots
             emit file_scanned(1);
         }
     } catch (std::exception &e) {
-        (std::cout << "FILE SCANNER STOPPED " + std::to_string(id) << '\n').flush();
+        //stopped
     }
-
-    (std::cout << "FILE SCANNER FINISHED " + std::to_string(id) +"\n").flush();
     emit finished_scanning();
 }
 
 void file_scanner::get_file_trigrams(QString const &path) {
     QSet<uint64_t> result;
-    //std::cout << path.toStdString() << '\n';
     QFile file(path);
     if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
         QTextStream stream(&file);

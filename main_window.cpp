@@ -46,7 +46,6 @@ void main_window::select_directory() {
     QString directory_path = QFileDialog::getExistingDirectory(this, "Select Directory for Scanning",
                                                                QString(), QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
     ui->pathArea->setText(directory_path);
-    //std::cout << files_data.size() << '/n';
 }
 
 void main_window::add_to_tracking() {
@@ -130,7 +129,6 @@ void main_window::add_to_queue(QString const &path) {
 
 void main_window::try_to_launch_directory_scanner() {
     if (directory_scanner_thread == nullptr && !queue.empty()) {
-        (std::cout << "TAKING\n").flush();
         QString nextDirectory = queue.front();
         current_scanner_directory = nextDirectory;
         queue.pop_front();
@@ -178,7 +176,6 @@ void main_window::check_request_area() {
 }
 
 void main_window::start_search(QString const &text) {
-    //(std::cout << "START" + text.toStdString()).flush();
 
     auto searcher_thread = new QThread();
     auto engine = new searcher(&files_data, ++latest_searcher_id, text);
@@ -232,7 +229,6 @@ void main_window::remove_directory_from_tracking() {
     for (size_t i = 0; i < cells.size(); i++) {
         QString path_to_remove = cells.at(i)->text();
         if (path_to_remove == current_scanner_directory) {
-            std::cout << "Trying to stop directory scanner\n";
             emit stop_directory_scanning(path_to_remove);
             scanner_stop = true;
         } else {
@@ -266,7 +262,6 @@ void main_window::stop_indexing() {
     for (size_t i = 0; i < cells.size(); i++) {
         QString path_to_remove = cells.at(i)->text();
         if (path_to_remove == current_scanner_directory) {
-            std::cout << "Trying to stop directory scanner\n";
             emit stop_directory_scanning(path_to_remove);
             set_status(path_to_remove, TrackStatus::STOPPED);
             scanner_stop = true;
@@ -302,8 +297,6 @@ void main_window::continue_indexing() {
 
 void main_window::update_file(QString const &path) {
     files_data.remove(path);
-
-    (std::cout << "UPDATE " + path.toStdString() + '\n').flush();
 
     running_updaters++;
 

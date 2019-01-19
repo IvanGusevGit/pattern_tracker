@@ -29,7 +29,6 @@ directory_scanner::directory_scanner(QHash<QString, QSet<uint64_t >>* storage) :
 }
 
 void directory_scanner::start_scanning() {
-    (std::cout << ("Scanning " + directory_path.toStdString() + '\n')).flush();
     finished_treads_counter = 0;
     std::pair<size_t, std::vector<QString>> files_data = find_files();
     emit range_signal(files_data.first);
@@ -70,7 +69,6 @@ void directory_scanner::emit_found_trigrams_signal(QString const &path, QSet<uin
 void directory_scanner::increment_finished_threads_counter() {
     finished_treads_counter++;
     if (finished_treads_counter == SCANNERS_NUMBER) {
-        (std::cout << "DIRECTORY SCANNER FINISHED\n").flush();
         for (size_t i = 0; i < SCANNERS_NUMBER; i++) {
             threads[i] = nullptr;
         }
@@ -89,7 +87,6 @@ directory_scanner::~directory_scanner() {
 
 void directory_scanner::stop_scanning(QString const &path) {
     for (size_t i = 0; i < SCANNERS_NUMBER; i++) {
-        (std::cout << "Trying to stop file scanner " + std::to_string(i) + '\n').flush();
         if (threads[i] != nullptr) {
             threads[i]->requestInterruption();
         }
