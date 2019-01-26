@@ -79,6 +79,8 @@ private:
 
     void stop_directory_monitoring(QString const &directory_path);
 
+    bool directory_intersection(QString first, QString second);
+
     QString find_parent_directory(QString const &path);
 
     QStringList get_sub_folders_list(QString folder);

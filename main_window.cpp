@@ -65,7 +65,7 @@ void main_window::add_to_tracking() {
 
     for (int32_t i = 0; i < ui->selectedDirectoriesView->rowCount(); i++) {
         QString currentDirectoryPath = ui->selectedDirectoriesView->item(i, 0)->text();
-        if (currentDirectoryPath.indexOf(directoryPath) != -1 || directoryPath.indexOf(currentDirectoryPath) != -1) {
+        if (directory_intersection(currentDirectoryPath, directoryPath)) {
             ui->notification->setText("Directory intersects with another directories in tracking list");
             return;
         }
@@ -364,4 +364,17 @@ void main_window::stop_directory_monitoring(QString const &directory_path) {
         systemWatcher.removePath(subfolder_it.next());
     }
     subfolders_data.remove(directory_path);
+}
+
+bool main_window::directory_intersection(QString first, QString second) {
+    if (first.size() < second.size()) {
+        first.swap(second);
+    }
+
+    if (first.size() == second.size()) {
+        return first == second;
+    }
+
+    int position = first.indexOf(second);
+    return  (position != -1 && first.at(position + second.size()) == '/');
 }
