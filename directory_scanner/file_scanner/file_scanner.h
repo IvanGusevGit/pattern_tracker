@@ -20,11 +20,9 @@ public:
 
 signals:
 
-    void found_trigrams(QString const &file_path, QSet<uint64_t> const &trigrams);
-
     void file_scanned(qint64);
 
-    void finished_scanning();
+    void finished_scanning(QHash<QString, QSet<uint64_t>> const &trigrams);
 
 public slots:
 
@@ -32,7 +30,9 @@ public slots:
 
 private:
 
-    void get_file_trigrams(QString const &path);
+    void get_file_trigrams(QString const &filepath, QHash<QString, QSet<uint64_t>> &trigram_collection);
+
+    void add_string_trigrams(QSet<uint64_t> &trigrams, const char *buffer, qint64 size);
 
     void checkInterruption();
 

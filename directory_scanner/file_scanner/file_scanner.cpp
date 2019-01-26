@@ -15,51 +15,55 @@
 file_scanner::file_scanner(size_t id) : id(id) {}
 
 void file_scanner::start_scanning(std::vector<std::vector<QString>> const &roots) {
+    qRegisterMetaType<QHash<QString, QSet<uint64_t>>>("QHash<QString, QSet<uint64_t>>");
+    QHash<QString, QSet<uint64_t>> trigram_collection;
     try {
         for (QString const &file_path : roots[id]) {
             checkInterruption();
-            get_file_trigrams(file_path);
+            get_file_trigrams(file_path, trigram_collection);
             emit file_scanned(1);
         }
     } catch (std::exception &e) {
         //stopped
     }
-    emit finished_scanning();
+    (std::cout << "Scanner " + std::to_string(id) + " finished\n").flush();
+    emit finished_scanning(trigram_collection);
 }
 
-void file_scanner::get_file_trigrams(QString const &path) {
-    QSet<uint64_t> result;
-    QFile file(path);
-    if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        QTextStream stream(&file);
-        stream.setCodec("UTF-8");
-        QString buffer;
-        while (true) {
-            checkInterruption();
-            buffer.append(stream.read(BUFFER_SIZE));
-            if (buffer.size() < 3) {
-                break;
-            }
-            for (int i = 0; i < buffer.size() - 2; i++) {
-                uint64_t current_trigram = buffer[i].unicode();
-                for (int j = i + 1; j < i + 3; j++) {
-                    current_trigram = (current_trigram << 16) + buffer[j].unicode();
+void file_scanner::get_file_trigrams(QString const &filepath, QHash<QString, QSet<uint64_t>> &trigram_collection) {
+    QFile file(filepath);
+    if (file.open(QIODevice::ReadOnly)) {
+        QSet<uint64_t> tr;
+        char buf[BUFFER_SIZE + 3 - 1];
+        qint64 read = file.read(buf, BUFFER_SIZE) - 3 + 1;
+        if (read >= 1)
+            do {
+                read += 2;
+                checkInterruption();
+                add_string_trigrams(tr, buf, read);
+                if (tr.size() > 20000) {
+                    tr.clear();
+                    return;
                 }
-                result.insert(current_trigram);
-                if (result.size() > 20000) {
-                    result.clear();
-                    break;
+                for (int i = 1; i < 3; ++i) {
+                    buf[i - 1] = buf[BUFFER_SIZE - 3 + i];
                 }
-            }
-            buffer = buffer.mid(buffer.size() - 2, 2);
-        }
+            } while ((read = file.read(buf + 3 - 1, BUFFER_SIZE)) >= 1);
+        trigram_collection.insert(filepath, tr);
         file.close();
     } else {
-        (std::cout << "Unable to open file " + path.toStdString() + '\n').flush();
+        std::cout << filepath.toStdString() << "\n";
     }
+}
 
-    if (!result.isEmpty()) {
-        emit found_trigrams(path, result);
+void file_scanner::add_string_trigrams(QSet<uint64_t> &trigrams, const char *buffer, qint64 size) {
+    for (ptrdiff_t i = 0; i <= static_cast<ptrdiff_t>(size) - 3; ++i) {
+        uint64_t hash = 0;
+        for (int j = 0; j < 3; ++j) {
+            hash = (hash << 16);
+            hash += static_cast<unsigned char>(buffer[i + j]);
+        }
+        trigrams.insert(hash);
     }
 }
 

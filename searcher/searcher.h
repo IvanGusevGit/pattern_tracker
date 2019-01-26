@@ -28,7 +28,7 @@ public slots:
 
 private:
 
-    QSet<uint64_t> calc_string_trigrams(QString const &s);
+    QSet<uint64_t> calc_string_trigrams(std::string text);
 
     bool check_file_for_substring(QString const &path, QString const &request);
 

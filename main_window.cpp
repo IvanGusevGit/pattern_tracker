@@ -11,8 +11,11 @@
 #include <QProgressBar>
 #include <QMetaType>
 #include <iostream>
+#include <QSet>
 
-Q_DECLARE_METATYPE(QSet<uint64_t>)
+Q_DECLARE_METATYPE(QSet<uint64_t>);
+
+//Q_DECLARE_METATYPE(QHash<QString, QSet<uint64_t>>)
 
 namespace TrackStatus {
     QString const IN_QUEUE = "In queue";
@@ -26,6 +29,7 @@ main_window::main_window(QWidget *parent)
     ui->setupUi(this);
 
     qRegisterMetaType<QSet<uint64_t>>("QSet<uint64_t>>");
+    qRegisterMetaType<QHash<QString, QSet<uint64_t>>>("QHash<QString, QSet<uint64_t>>");
     init_ui_components();
 
     connect(ui->selectDirectoryButton, SIGNAL(clicked(bool)), this, SLOT(select_directory()));
@@ -34,7 +38,7 @@ main_window::main_window(QWidget *parent)
     connect(ui->removeDirectoryButton, SIGNAL(clicked(bool)), this, SLOT(remove_directory_from_tracking()));
     connect(ui->stopIndexingButton, SIGNAL(clicked(bool)), this, SLOT(stop_indexing()));
     connect(ui->continueIndexingButton, SIGNAL(clicked(bool)), this, SLOT(continue_indexing()));
-    connect(&systemWatcher, &QFileSystemWatcher::fileChanged, this, &main_window::update_directory);
+    connect(&systemWatcher, &QFileSystemWatcher::directoryChanged, this, &main_window::update_directory);
 
 }
 
@@ -85,6 +89,7 @@ void main_window::add_to_tracking() {
 
 void main_window::start_indexing(QString const &path) {
     set_status(path, TrackStatus::INDEXING);
+    systemWatcher.addPath(path);
     emit scan_directory_signal(path);
 }
 
@@ -116,14 +121,16 @@ void main_window::set_status_bar_range(qint64 range) {
     progressBar->setValue(0);
 }
 
-void main_window::add_trigram_data(QString const &path, QSet<uint64_t> const &trigrams) {
-    files_data.insert(path, trigrams);
+void main_window::add_trigram_data(QHash<QString, QSet<uint64_t>> const &files_data) {
     if (!directories_data.contains(current_scanner_directory)) {
         directories_data[current_scanner_directory] = QSet<QString>();
     }
-    directories_data[current_scanner_directory].insert(path);
-    systemWatcher.addPath(path);
-
+    QHashIterator<QString, QSet<uint64_t>> file_it(files_data);
+    while (file_it.hasNext()) {
+        file_it.next();
+        directories_data[current_scanner_directory].insert(file_it.key());
+        this->files_data[file_it.key()] = file_it.value();
+    }
 }
 
 void main_window::add_to_queue(QString const &path) {
@@ -132,6 +139,7 @@ void main_window::add_to_queue(QString const &path) {
 }
 
 void main_window::try_to_launch_directory_scanner() {
+    (std::cout << files_data.size() << '\n').flush();
     if (directory_scanner_thread == nullptr && !queue.empty()) {
         QString nextDirectory = queue.front();
         current_scanner_directory = nextDirectory;
@@ -156,10 +164,10 @@ void main_window::try_to_launch_directory_scanner() {
 }
 
 void main_window::reload_directory_scanner() {
+    start_directory_monitoring(current_scanner_directory);
     int32_t row = find_row(current_scanner_directory);
     bool stopped;
     stopped = (row == -1) || ((QProgressBar*)ui->selectedDirectoriesView->cellWidget(row, 1))->text() != "100%";
-
     if (!stopped) {
         set_status(current_scanner_directory, TrackStatus::SCANNED);
         directory_scanner_thread = nullptr;
@@ -170,7 +178,11 @@ void main_window::reload_directory_scanner() {
 
 void main_window::check_request_area() {
     QString text = ui->requestArea->text();
-    start_search(text);
+    if (text.isEmpty()) {
+        ui->foundPathesArea->clear();
+    } else {
+        start_search(text);
+    }
 }
 
 void main_window::start_search(QString const &text) {
@@ -181,6 +193,7 @@ void main_window::start_search(QString const &text) {
 
     connect(searcher_thread, SIGNAL(started()), engine, SLOT(start_search()));
     connect(engine, &searcher::found_signal, this, &main_window::add_found_path);
+    connect(this, &main_window::stop_search_pattern_signal, engine, &searcher::stop_search);
     connect(engine, &searcher::search_finished, engine, &QObject::deleteLater);
     connect(searcher_thread, &QThread::finished, this, &main_window::decrement_search_counter);
     connect(searcher_thread, &QThread::finished, searcher_thread, &QThread::deleteLater);
@@ -226,6 +239,7 @@ void main_window::remove_directory_from_tracking() {
     bool scanner_stop = false;
     for (size_t i = 0; i < cells.size(); i++) {
         QString path_to_remove = cells.at(i)->text();
+        systemWatcher.removePath(path_to_remove);
         if (path_to_remove == current_scanner_directory) {
             emit stop_directory_scanning(path_to_remove);
             scanner_stop = true;
@@ -240,6 +254,7 @@ void main_window::remove_directory_from_tracking() {
         }
         ui->selectedDirectoriesView->removeRow(cells.at(i)->row());
         remove_directory_trigrams(path_to_remove);
+        stop_directory_monitoring(path_to_remove);
         if (scanner_stop) {
             directory_scanner_thread = nullptr;
             try_to_launch_directory_scanner();
@@ -304,7 +319,9 @@ void main_window::update_directory(QString const &path) {
     }
     remove_directory_trigrams(parent_path);
     set_status(parent_path, TrackStatus::IN_QUEUE);
+    (std::cout << "CHANGE DETECTED " + path.toStdString() << '\n').flush();
     add_to_queue(parent_path);
+
 }
 
 QString main_window::find_parent_directory(QString const &path) {
@@ -314,4 +331,37 @@ QString main_window::find_parent_directory(QString const &path) {
         }
     }
     return "";
+}
+
+QStringList main_window::get_sub_folders_list(QString folder)
+{
+    QDir dir(folder);
+    dir.setFilter(QDir::Dirs);
+
+    QFileInfoList list = dir.entryInfoList();
+    QStringList dirList;
+
+    for (int i = 0; i < list.size(); ++i) {
+        QFileInfo fileInfo = list.at(i);
+        dirList << fileInfo.filePath();
+    }
+
+    return dirList;
+}
+
+void main_window::start_directory_monitoring(QString const &directory_path) {
+    QStringList subfolders = get_sub_folders_list(directory_path);
+    subfolders_data[directory_path] = QSet<QString>();
+    for (size_t i = 0; i < subfolders.size(); i++) {
+        subfolders_data[directory_path].insert(subfolders.at(i));
+        systemWatcher.addPath(subfolders.at(i));
+    }
+}
+
+void main_window::stop_directory_monitoring(QString const &directory_path) {
+    QSetIterator<QString> subfolder_it(subfolders_data[directory_path]);
+    while (subfolder_it.hasNext()) {
+        systemWatcher.removePath(subfolder_it.next());
+    }
+    subfolders_data.remove(directory_path);
 }

@@ -24,7 +24,7 @@ signals:
 
     void file_scanned(qint64);
 
-    void found_trigrams_signal(QString const &path, QSet<uint64_t> const &trigrams);
+    void found_trigrams_signal(QHash<QString, QSet<uint64_t>> const &trigrams);
 
     void finished_scanning();
 
@@ -37,9 +37,7 @@ public slots:
 
     void emit_scanned_signal(qint64 t);
 
-    void emit_found_trigrams_signal(QString const &path, QSet<uint64_t> const &trigrams);
-
-    void increment_finished_threads_counter();
+    void increment_finished_threads_counter(QHash<QString, QSet<uint64_t>> const &trigrams);
 
     void set_directory_path(QString const &path);
 

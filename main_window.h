@@ -12,6 +12,7 @@
 #include <QScopedPointer>
 #include <QQueue>
 #include <QFileSystemWatcher>
+#include <QStringList>
 
 
 namespace Ui {
@@ -44,7 +45,7 @@ public slots:
     void increase_status_bar(qint64 value);
     void set_status(QString const &path, QString status);
 
-    void add_trigram_data(QString const &path, QSet<uint64_t> const &trigrams);
+    void add_trigram_data(QHash<QString, QSet<uint64_t>> const &files_data);
 
     void try_to_launch_directory_scanner();
     void reload_directory_scanner();
@@ -74,9 +75,16 @@ private:
 
     void remove_directory_trigrams(QString const &path);
 
+    void start_directory_monitoring(QString const &directory_path);
+
+    void stop_directory_monitoring(QString const &directory_path);
+
     QString find_parent_directory(QString const &path);
 
+    QStringList get_sub_folders_list(QString folder);
+
     QHash<QString, QSet<QString>> directories_data;
+    QHash<QString, QSet<QString>> subfolders_data;
     QHash<QString, QSet<uint64_t>> files_data;
 
     QScopedPointer<Ui::main_window> ui;

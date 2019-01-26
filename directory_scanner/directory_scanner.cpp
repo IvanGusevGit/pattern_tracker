@@ -13,6 +13,7 @@ Q_DECLARE_METATYPE(std::vector<std::vector<QString>>)
 
 directory_scanner::directory_scanner(QHash<QString, QSet<uint64_t >>* storage) : file_storage(storage) {
     qRegisterMetaType<std::vector<std::vector<QString>>>("std::vector<std::vector<QString>>");
+    qRegisterMetaType<QHash<QString, QSet<uint64_t>>>("QHash<QString, QSet<uint64_t>>");
     for (size_t i = 0; i < SCANNERS_NUMBER; i++) {
         threads[i] = new QThread;
         auto *scanner = new file_scanner(i);
@@ -20,9 +21,7 @@ directory_scanner::directory_scanner(QHash<QString, QSet<uint64_t >>* storage) :
 
         connect(this, &directory_scanner::file_groups_signal, scanner, &file_scanner::start_scanning);
         connect(scanner, &file_scanner::file_scanned, this, &directory_scanner::emit_scanned_signal);
-        connect(scanner, &file_scanner::found_trigrams, this, &directory_scanner::emit_found_trigrams_signal);
         connect(scanner, &file_scanner::finished_scanning, this, &directory_scanner::increment_finished_threads_counter);
-
 
         threads[i]->start();
     }
@@ -62,11 +61,9 @@ void directory_scanner::emit_scanned_signal(qint64 t) {
     emit file_scanned(t);
 }
 
-void directory_scanner::emit_found_trigrams_signal(QString const &path, QSet<uint64_t> const &trigrams) {
-    emit found_trigrams_signal(path, trigrams);
-}
-
-void directory_scanner::increment_finished_threads_counter() {
+void directory_scanner::increment_finished_threads_counter(QHash<QString, QSet<uint64_t>> const &trigram_collection) {
+    (std::cout << trigram_collection.size() << '\n').flush();
+    emit found_trigrams_signal(trigram_collection);
     finished_treads_counter++;
     if (finished_treads_counter == SCANNERS_NUMBER) {
         for (size_t i = 0; i < SCANNERS_NUMBER; i++) {
