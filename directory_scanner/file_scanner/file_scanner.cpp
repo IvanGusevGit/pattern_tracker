@@ -52,7 +52,7 @@ void file_scanner::get_file_trigrams(QString const &filepath, QHash<QString, QSe
         trigram_collection.insert(filepath, tr);
         file.close();
     } else {
-        std::cout << filepath.toStdString() << "\n";
+        std::cout << "Unable to open " + filepath.toStdString() << "\n";
     }
 }
 
