@@ -41,5 +41,9 @@ private:
     size_t id;
 };
 
+class interruption_exception {
+
+};
+
 
 #endif //PATTERN_TRACKER_FILE_SCANNER_H

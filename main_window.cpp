@@ -139,7 +139,6 @@ void main_window::add_to_queue(QString const &path) {
 }
 
 void main_window::try_to_launch_directory_scanner() {
-    (std::cout << files_data.size() << '\n').flush();
     if (directory_scanner_thread == nullptr && !queue.empty()) {
         QString nextDirectory = queue.front();
         current_scanner_directory = nextDirectory;
@@ -319,7 +318,6 @@ void main_window::update_directory(QString const &path) {
     }
     remove_directory_trigrams(parent_path);
     set_status(parent_path, TrackStatus::IN_QUEUE);
-    (std::cout << "CHANGE DETECTED " + path.toStdString() << '\n').flush();
     add_to_queue(parent_path);
 
 }

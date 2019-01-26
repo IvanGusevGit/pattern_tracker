@@ -17,17 +17,21 @@ file_scanner::file_scanner(size_t id) : id(id) {}
 void file_scanner::start_scanning(std::vector<std::vector<QString>> const &roots) {
     qRegisterMetaType<QHash<QString, QSet<uint64_t>>>("QHash<QString, QSet<uint64_t>>");
     QHash<QString, QSet<uint64_t>> trigram_collection;
+    bool stopped = false;
     try {
         for (QString const &file_path : roots[id]) {
             checkInterruption();
             get_file_trigrams(file_path, trigram_collection);
             emit file_scanned(1);
         }
-    } catch (std::exception &e) {
-        //stopped
+    } catch (interruption_exception &e) {
+        stopped = true;
     }
-    (std::cout << "Scanner " + std::to_string(id) + " finished\n").flush();
-    emit finished_scanning(trigram_collection);
+    if (!stopped) {
+        emit finished_scanning(trigram_collection);
+    } else {
+        emit QHash<QString, QSet<uint64_t>>();
+    }
 }
 
 void file_scanner::get_file_trigrams(QString const &filepath, QHash<QString, QSet<uint64_t>> &trigram_collection) {
@@ -69,7 +73,7 @@ void file_scanner::add_string_trigrams(QSet<uint64_t> &trigrams, const char *buf
 
 void file_scanner::checkInterruption() {
     if (QThread::currentThread()->isInterruptionRequested()) {
-        throw std::exception();
+        throw interruption_exception();
     }
 }
 
